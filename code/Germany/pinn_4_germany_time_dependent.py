@@ -234,8 +234,28 @@ for epoch in range(500000):  # loop over the dataset multiple times
 
 print(f'Finished Training, beta: {beta_final}, gamma: {gamma_final}, beta/gamma: {beta_final/gamma_final}, S0_final: {S0_final}, I0_final: {I0_final}, R0_final: {R0_final}.')
 
+def plot_log_loss(country,loss,data_loss,residuals_loss,type):
+    plt.figure(figsize=(16, 9))
+    eps = np.linspace(0, len(loss), len(loss))
+    plt.plot(eps, np.log10(loss), linewidth=1, label='loss')
+    plt.plot(eps, np.log10(data_loss), linewidth=1, label='data_loss')
+    plt.plot(eps, np.log10(residuals_loss), linewidth=1, label='residuals_loss')
 
+    plt.title('train loss', fontsize=20)
+    plt.xlabel('epoch', fontsize=20)
+    # plt.yscale('log')
+    plt.legend()
 
+    # 设置刻度字体大小
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
+    # 设置图例字体大小
+    plt.legend(loc=7, fontsize=16)
+
+    plt.savefig(path_results+f'{country}_{type}_loss.pdf',dpi=600)
+    plt.close()
+
+path_results = '../../results/'
 # plot the loss
 plot_log_loss(country,total_epoch,total_data_loss_epoch,total_residual_loss_epoch,train_size)
 
@@ -250,10 +270,10 @@ u0 = [S0_final, I0_final, R0_final]
 res = integrate.odeint(covid_sir, u0, t_points, args=(beta_final,gamma_final))
 S_ode, I_ode, R_ode = res.T
 
-constants.plot_result_comparation(country,S_pinns,'S',S_ode,S_ode,train_size)
-constants.plot_result_comparation(country,I_pinns,'I',I_ode,I_ode,train_size)
-constants.plot_result_comparation(country,R_pinns,'R',R_ode,R_ode,train_size)
-constants.plot_result_comparation(country,Ic_pinns,'Ic',Ic_pinns,Ic_pinns,train_size)
+plot_result_comparation(country,S_pinns,'S',S_ode,S_ode,train_size)
+plot_result_comparation(country,I_pinns,'I',I_ode,I_ode,train_size)
+plot_result_comparation(country,R_pinns,'R',R_ode,R_ode,train_size)
+plot_result_comparation(country,Ic_pinns,'Ic',Ic_pinns,Ic_pinns,train_size)
 
 # save results
 # constants.save_results_fixed(country,date,S_pinns,I_pinns,R_pinns,S_raw,I_raw,R_raw,S_ode,I_ode,R_ode,train_size)
@@ -262,7 +282,7 @@ constants.plot_result_comparation(country,Ic_pinns,'Ic',Ic_pinns,Ic_pinns,train_
 # constants.save_error_result_sir(country,S_raw,I_raw,R_raw,st,it,rt,S_ode,I_ode,R_ode,train_size)
 
 # save parameters learned from PINNs
-constants.save_parameters_learned(country,beta_raw,gamma_raw,beta_final,gamma_final,train_size)
+save_parameters_learned(country,beta_raw,gamma_raw,beta_final,gamma_final,train_size)
 
 # print beta and gamma
 print(f'days is {days}.')

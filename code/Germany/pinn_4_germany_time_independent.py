@@ -12,16 +12,28 @@ import torch.optim as optim
 from torch.autograd import Variable
 from scipy import integrate
 
-# cd dir
-sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+# cd directory to the root path of the project
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
-import constants
+from data.constants_util import *
 import numpy as np
 import pandas as pd
 
 
+path_dataprocessed = '../../data/dataset_processed/'
+path_results = '../../results/'
+
 # load data
-path, paras = constants.read_data_with_timespan('Germany',['2021-02-23','2021-07-01'])
+
+def read_data_with_timespan(country_name,timespan):
+    for country in os.listdir(path_dataprocessed):
+        paras = country.split('_')[:-1]
+        if country_name == paras[0] and timespan[0] == paras[2] and timespan[1] == paras[3]:
+            return path_dataprocessed+country,paras
+    return f'Not support {country_name}.'
+
+# load data
+path, paras = read_data_with_timespan('Germany',['2021-02-23','2021-07-01'])
 pf = pd.read_csv(path)
 
 country = paras[0]
@@ -48,7 +60,7 @@ top = int(np.argmax(I_raw))
 train_size = (top-10)
 test_size = -train_size
 
-device = constants.get_device()
+device = get_device()
 
 # SIR model 
 def covid_sir(u, t, beta, gamma):
@@ -212,33 +224,55 @@ for epoch in range(10000000):  # loop over the dataset multiple times
 
 print('Finished Training')
 
+
+def plot_log_loss(country,loss,data_loss,residuals_loss,type):
+    plt.figure(figsize=(16, 9))
+    eps = np.linspace(0, len(loss), len(loss))
+    plt.plot(eps, np.log10(loss), linewidth=1, label='loss')
+    plt.plot(eps, np.log10(data_loss), linewidth=1, label='data_loss')
+    plt.plot(eps, np.log10(residuals_loss), linewidth=1, label='residuals_loss')
+
+    plt.title('train loss', fontsize=20)
+    plt.xlabel('epoch', fontsize=20)
+    # plt.yscale('log')
+    plt.legend()
+
+    # 设置刻度字体大小
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
+    # 设置图例字体大小
+    plt.legend(loc=7, fontsize=16)
+
+    plt.savefig(path_results+f'{country}_{type}_loss.pdf',dpi=600)
+    plt.close()
+
 # plot the loss
-constants.plot_log_loss(country,total_epoch,total_data_loss_epoch,total_residual_loss_epoch,train_size)
+plot_log_loss(country,total_epoch,total_data_loss_epoch,total_residual_loss_epoch,train_size)
 
 u = network(t_points)
 st = u[:,0].cpu().detach().numpy()
 it = u[:,1].cpu().detach().numpy()
 rt = u[:,2].cpu().detach().numpy()
 
-beta, gamma = beta_trained.detach().numpy()[0], gamma_trained.detach().numpy()[0]
+beta, gamma = beta_trained.cpu().detach().numpy()[0], gamma_trained.cpu().detach().numpy()[0]
 
 # solves the SIR_ODEs by parameters learned fromm PINNs
 u0 = [S0, I0, R0]
 res = integrate.odeint(covid_sir, u0, t_points, args=(beta,gamma))
 S_ode, I_ode, R_ode = res.T
 
-constants.plot_result_comparation(country,st,'S',S_raw,S_ode,train_size)
-constants.plot_result_comparation(country,it,'I',I_raw,I_ode,train_size)
-constants.plot_result_comparation(country,rt,'R',R_raw,R_ode,train_size)
+plot_result_comparation(country,st,'S',S_raw,S_ode,train_size)
+plot_result_comparation(country,it,'I',I_raw,I_ode,train_size)
+plot_result_comparation(country,rt,'R',R_raw,R_ode,train_size)
 
 # save results
-constants.save_results_fixed(country,date,st,it,rt,S_raw,I_raw,R_raw,S_ode,I_ode,R_ode,train_size)
+save_results_fixed(country,date,st,it,rt,S_raw,I_raw,R_raw,S_ode,I_ode,R_ode,train_size)
 
 # save MSE and MAE
-constants.save_error_result_sir(country,S_raw,I_raw,R_raw,st,it,rt,S_ode,I_ode,R_ode,train_size)
+save_error_result_sir(country,S_raw,I_raw,R_raw,st,it,rt,S_ode,I_ode,R_ode,train_size)
 
 # save parameters learned from PINNs
-constants.save_parameters_learned(country,beta_raw,gamma_raw,beta,gamma,train_size)
+save_parameters_learned(country,beta_raw,gamma_raw,beta,gamma,train_size)
 
 # print beta and gamma
 print(f'days is {days}, peak index is: {top}.')

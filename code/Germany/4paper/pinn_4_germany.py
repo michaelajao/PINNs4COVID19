@@ -15,7 +15,7 @@ from scipy import integrate
 # 将上两级目录加入到系统路径中（constants.py所在目录）
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))))
 
-import constants
+from data.constants_util import *
 import numpy as np
 import pandas as pd
 
@@ -27,7 +27,7 @@ country = 'Germany'
 N = 84323763
 days =117
 
-pf = pd.read_csv('dinns/Germany/discard/remove_weight_from_residual_loss/84323763_0_117_0_53_real_data_estimated.csv')/N
+pf = pd.read_csv('../../Germany/discard/remove_weight_from_residual_loss/84323763_0_117_0_53_real_data_estimated.csv')/N
 # date = np.array(pf['date'])
 date = np.array(pd.date_range(start='03/06/2021',periods=days,normalize=True).strftime('%Y-%m-%d'))
 
