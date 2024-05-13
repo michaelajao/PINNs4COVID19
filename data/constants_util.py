@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
-
+import sys
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -9,13 +9,16 @@ import torch
 from prettytable import PrettyTable
 from sklearn import metrics
 
-path_confirmed = './dataset_raw/time_series_covid19_confirmed_global.csv'
-path_deaths = './dataset_raw/time_series_covid19_deaths_global.csv'
-path_recovered = './dataset_raw/time_series_covid19_recovered_global.csv'
+# cd directory to the root path of the project
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
-path_plots_dataprocessed = './plots_dataset/'
-path_results = './results/'
-path_dataprocessed = './dataset_processed/'
+path_confirmed = './dataset_raw/time_series_covid19_confirmed_global.csv'
+path_deaths = '../data/dataset_raw/time_series_covid19_deaths_global.csv'
+path_recovered = '../data/dataset_raw/time_series_covid19_recovered_global.csv'
+
+path_plots_dataprocessed = '../plots/plots_dataset/'
+path_results = '../results/'
+path_dataprocessed = '../data/dataset_processed/'
 
 
 countries = ['China']#,'Germany','Italy','Greece','Switzerland','Spain','Sweden']

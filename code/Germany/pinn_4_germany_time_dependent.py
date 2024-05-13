@@ -12,17 +12,31 @@ import torch.optim as optim
 from torch.autograd import Variable
 from scipy import integrate
 
-# cd dir
-sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+# cd directory to the root path of the project
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
-import constants
+
+# load constants scripts from data\constants.py
+from data.constants_util import *
 import numpy as np
 import pandas as pd
 
+path_dataprocessed = '../../data/dataset_processed/'
+
 
 # load data
-path, paras = constants.read_data_with_timespan('Germany',['2021-02-23','2021-07-01'])
+
+def read_data_with_timespan(country_name,timespan):
+    for country in os.listdir(path_dataprocessed):
+        paras = country.split('_')[:-1]
+        if country_name == paras[0] and timespan[0] == paras[2] and timespan[1] == paras[3]:
+            return path_dataprocessed+country,paras
+    return f'Not support {country_name}.'
+
+path, paras = read_data_with_timespan('Germany',['2021-02-23','2021-07-01'])
 pf = pd.read_csv(path)
+
+pf.head()
 
 country = paras[0]
 N = int(paras[1])
@@ -39,7 +53,7 @@ N = N/N
 # training /test set
 train_size = days
 
-device = constants.get_device()
+device = get_device()
 
 # SIR model 
 def covid_sir(u, t, beta, gamma):
@@ -158,8 +172,10 @@ scheduler_v = optim.lr_scheduler.StepLR(optimizer_v, step_size=5000, gamma=0.998
 
 # time points(discrete)
 t_points = np.linspace(0,days,days+1)[:-1]
+print(t_points)
 # time points(training set)shuffle
 index = torch.randperm(train_size)
+print(index)
 
 total_epoch = []
 total_data_loss_epoch = []
@@ -221,7 +237,7 @@ print(f'Finished Training, beta: {beta_final}, gamma: {gamma_final}, beta/gamma:
 
 
 # plot the loss
-constants.plot_log_loss(country,total_epoch,total_data_loss_epoch,total_residual_loss_epoch,train_size)
+plot_log_loss(country,total_epoch,total_data_loss_epoch,total_residual_loss_epoch,train_size)
 
 st,it,rt,ict = network(t_points)
 S_pinns = st.cpu().detach().numpy()
