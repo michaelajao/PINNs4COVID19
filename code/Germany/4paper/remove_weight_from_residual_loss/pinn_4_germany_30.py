@@ -15,7 +15,7 @@ from scipy import integrate
 # 将上两级目录加入到系统路径中（constants.py所在目录）
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))))
 
-import constants
+# import constants
 import numpy as np
 import pandas as pd
 
