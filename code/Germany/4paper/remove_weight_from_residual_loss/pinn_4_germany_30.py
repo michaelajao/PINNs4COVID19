@@ -214,7 +214,7 @@ print('Finished Training')
 # 绘制loss图
 constants.plot_log_loss(country, total_epoch,total_data_loss_epoch,total_residual_loss_epoch,train_size)
 
-t = np.linspace(0,days,days+1)[:-1]
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                t = np.linspace(0,days,days+1)[:-1]
 
 u = network(t)
 st = u[:,0].cpu().detach().numpy()
