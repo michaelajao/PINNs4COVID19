@@ -3,7 +3,7 @@
 import os
 import sys
 from collections import deque
-
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
@@ -13,9 +13,9 @@ from torch.autograd import Variable
 from scipy import integrate
 
 # 将上两级目录加入到系统路径中（constants.py所在目录）
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))))
-
-# import constants
+# sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..'))
+from data.constants_util import *
 import numpy as np
 import pandas as pd
 
@@ -27,7 +27,14 @@ country = 'Germany'
 N = 84323763
 days =117
 
-pf = pd.read_csv('dinns/Germany/discard/remove_weight_from_residual_loss/84323763_0_117_0_53_real_data_estimated.csv')/N
+data = pd.read_csv('../../4paper/remove_weight_from_residual_loss/84323763_0_117_0_53_real_data_estimated.csv')
+
+# plot susceptibles
+plt.plot(data['susceptibles'])
+plt.show()
+
+
+pf = pd.read_csv('../remove_weight_from_residual_loss/84323763_0_117_0_53_real_data_estimated.csv')/N
 # date = np.array(pf['date'])
 date = np.array(pd.date_range(start='03/06/2021',periods=days,normalize=True).strftime('%Y-%m-%d'))
 
@@ -37,6 +44,11 @@ R_raw = np.array(pf['removed'])*15
 N = N/N
 S_raw = N-I_raw-R_raw
 
+# plot S_raw
+plt.plot(pf['infectives'])
+plt.show()
+
+
 top = int(np.argmax(I_raw))
 
 data_size = days
@@ -44,7 +56,7 @@ data_size = days
 train_size = 30
 test_size = -train_size
 
-device = constants.get_device()
+device = get_device()
 
 # SIR model 输出为单位时间内的每个舱室的个体数
 def covid_sir(u, t, beta, gamma):
@@ -212,34 +224,74 @@ print('Finished Training')
 
 
 # 绘制loss图
-constants.plot_log_loss(country, total_epoch,total_data_loss_epoch,total_residual_loss_epoch,train_size)
+plot_log_loss(country, total_epoch,total_data_loss_epoch,total_residual_loss_epoch,train_size)
 
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                t = np.linspace(0,days,days+1)[:-1]
+t = np.linspace(0,days,days+1)[:-1]
 
 u = network(t)
 st = u[:,0].cpu().detach().numpy()
 it = u[:,1].cpu().detach().numpy()
 rt = u[:,2].cpu().detach().numpy()
 
-beta, gamma = beta_trained.detach().numpy()[0], gamma_trained.detach().numpy()[0]
+# plot st vs real data
+plt.plot(st, label='st', color='red')
+plt.plot(S_raw, label='S_real', color='black')
+plt.legend()
+plt.show()
+
+beta, gamma = beta_trained.cpu().detach().numpy(), gamma_trained.cpu().detach().numpy()
+
+# change beta and gamma to integr type rather than array
+beta = beta[0]
+gamma = gamma[0]
 
 # 利用训练参数求解ODE SIR
+def covid_sir(u, t, beta, gamma):
+    S, I, R = u
+    dSdt = -beta * S * I
+    dIdt = beta * S * I - gamma * I
+    dRdt = gamma * I
+    return [dSdt, dIdt, dRdt]
+
 u0 = [S0, I0, R0]
-res = integrate.odeint(covid_sir, u0, t, args=(beta,gamma))
+res = integrate.odeint(covid_sir, u0, t, args=(beta, gamma))
 S_ode, I_ode, R_ode = res.T
 
-constants.plot_result_comparation(country,st,'S',S_raw,S_ode,train_size)
-constants.plot_result_comparation(country,it,'I',I_raw,I_ode,train_size)
-constants.plot_result_comparation(country,rt,'R',R_raw,R_ode,train_size)
+def plot_result_comparation(country, pre_data, data_type, real_data, ode_data,train_size):
+    if not os.path.exists(path_results):
+        os.makedirs(path_results)
+
+    plt.figure(figsize=(16,9))
+    t = np.linspace(0,len(pre_data),len(pre_data)+1)[:-1]
+
+    plt.plot(t, real_data, color ='black' ,label=f'{data_type}_Real') 
+    plt.scatter(t[:train_size], real_data[:train_size], color ='black', marker='*', label=f'{data_type}_Train')  # type: ignore
+    plt.plot(t, pre_data, color ='red' ,label=f'{data_type}_PINNs') 
+    if data_type != 'Ic':
+        plt.plot(t, ode_data, color ='green' ,label=f'{data_type}_SIR') 
+
+    plt.xlabel('Time t (days)', fontsize=25)
+    plt.ylabel('Numbers of individuals', fontsize=25)
+
+    plt.xticks(fontsize=25)
+    plt.yticks(fontsize=25)
+    plt.legend(fontsize=25)
+
+    # plt.savefig(path_results+f'{country}_{data_type}_{train_size}_result.pdf', dpi=600)
+    plt.show()
+
+plot_result_comparation(country,st,'S',S_raw,S_ode,train_size)
+plot_result_comparation(country,it,'I',I_raw,I_ode,train_size)
+plot_result_comparation(country,rt,'R',R_raw,R_ode,train_size)
 
 # 保存结果
-constants.save_results_fixed(country,date,st,it,rt,S_raw,I_raw,R_raw,S_ode,I_ode,R_ode,train_size)
+save_results_fixed(country,date,st,it,rt,S_raw,I_raw,R_raw,S_ode,I_ode,R_ode,train_size)
 
 # 保存MSE和MAE
-constants.save_error_result_sir(country,S_raw,I_raw,R_raw,st,it,rt,S_ode,I_ode,R_ode,train_size)
+save_error_result_sir(country,S_raw,I_raw,R_raw,st,it,rt,S_ode,I_ode,R_ode,train_size)
 
 # 保存参数学习结果
-constants.save_parameters_learned(country,beta_raw,gamma_raw,beta,gamma,train_size)
+save_parameters_learned(country,beta_raw,gamma_raw,beta,gamma,train_size)
 
 # 打印beta和gamma
 print(f'peak index is: {top}.')
